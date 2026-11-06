@@ -1,0 +1,2150 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CONSTRACK - Construction Project Monitoring &amp; Management System</title>
+  <meta name="description" content="Sistem Pembelajaran & Pemantauan Proyek Konstruksi Mahasiswa Teknik Sipil: RAB, Kurva S, Gantt Chart, Cash Flow, dan Earned Value Management (EVM).">
+  
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome 6.5.1 CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  
+  <!-- Chart.js 4.4.1 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Supabase JS Client v2 CDN (Untuk Autentikasi & Database Cloud) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Application Stylesheet (Tema Hijau Sage) -->
+  <link rel="stylesheet" href="style.css?v=2.2.0">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- ==========================================
+         SIDEBAR NAVIGATION
+         ========================================== -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo">
+          <div class="logo-badge">
+            <i class="fa-solid fa-helmet-safety"></i>
+          </div>
+          <div class="brand-title">
+            <span class="text-main">CONSTRACK</span>
+            <span class="text-sub">Sipil Edu System</span>
+          </div>
+        </div>
+        <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Tutup Menu">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Menu Utama</div>
+        <div class="nav-item active" data-view="dashboard">
+          <i class="fa-solid fa-gauge-high nav-icon"></i>
+          <span>Dashboard</span>
+        </div>
+        <div class="nav-item" data-view="proyek">
+          <i class="fa-solid fa-diagram-project nav-icon"></i>
+          <span>Data Proyek</span>
+          <span class="nav-badge badge-primary" id="badgeProjectCount">2</span>
+        </div>
+
+        <div class="nav-section-title">Manajemen Biaya & RAB</div>
+        <div class="nav-item" data-view="rab">
+          <i class="fa-solid fa-file-invoice-dollar nav-icon"></i>
+          <span>Rencana Anggaran (RAB)</span>
+        </div>
+        <div class="nav-item" data-view="monitoring-biaya">
+          <i class="fa-solid fa-chart-pie nav-icon"></i>
+          <span>Monitoring Biaya</span>
+        </div>
+        <div class="nav-item" data-view="cash-flow">
+          <i class="fa-solid fa-money-bill-trend-up nav-icon"></i>
+          <span>Arus Kas (Cash Flow)</span>
+        </div>
+
+        <div class="nav-section-title">Waktu & Kinerja Lapangan</div>
+        <div class="nav-item" data-view="monitoring-waktu">
+          <i class="fa-solid fa-calendar-days nav-icon"></i>
+          <span>Jadwal & Gantt Chart</span>
+        </div>
+        <div class="nav-item" data-view="progress-pekerjaan">
+          <i class="fa-solid fa-bars-progress nav-icon"></i>
+          <span>Progress Pekerjaan</span>
+        </div>
+        <div class="nav-item" data-view="kurva-s">
+          <i class="fa-solid fa-chart-line nav-icon"></i>
+          <span>Kurva S (S-Curve)</span>
+          <span class="nav-badge badge-accent">Auto</span>
+        </div>
+
+        <div class="nav-section-title">Evaluasi & Pembelajaran</div>
+        <div class="nav-item" data-view="evm">
+          <i class="fa-solid fa-chart-simple nav-icon"></i>
+          <span>Earned Value (EVM)</span>
+        </div>
+        <div class="nav-item" data-view="laporan">
+          <i class="fa-solid fa-file-lines nav-icon"></i>
+          <span>Laporan Proyek</span>
+        </div>
+        <div class="nav-item" data-view="panduan">
+          <i class="fa-solid fa-book-open-reader nav-icon"></i>
+          <span>Panduan Penggunaan</span>
+          <span class="nav-badge badge-primary"><i class="fa-solid fa-graduation-cap"></i> Belajar</span>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="system-status">
+          <div class="status-indicator">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusDbText">Akun Terisolasi</span>
+          </div>
+          <button class="db-pill" id="btnOpenSupabaseModal" title="Pengaturan Database Supabase">
+            <i class="fa-solid fa-database"></i> <span id="dbBadgeText">Lokal</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==========================================
+         MAIN WRAPPER
+         ========================================== -->
+    <div class="app-main">
+      
+      <!-- Topbar Header -->
+      <header class="app-header">
+        <div class="header-left">
+          <button class="toggle-sidebar-btn" id="toggleSidebarBtn" aria-label="Buka Sidebar">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          
+          <div class="project-selector-wrapper">
+            <label for="projectSelector"><i class="fa-solid fa-folder-open"></i> Proyek Aktif:</label>
+            <select class="project-selector" id="projectSelector">
+              <!-- Populated dynamically via JS -->
+            </select>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <div class="header-date-badge" id="currentDateBadge">
+            <i class="fa-regular fa-calendar"></i>
+            <span id="displayCurrentDate">6 November 2026</span>
+          </div>
+
+          <button class="btn btn-sm btn-outline" onclick="openExampleModal('proyek')" title="Panduan Contoh Pengisian Fitur" style="margin-right: 6px;">
+            <i class="fa-solid fa-circle-question"></i> <span class="hide-mobile">Contoh Pengisian</span>
+          </button>
+          <button class="btn-header-reset" id="btnResetDemoData" title="Reset seluruh data ke simulasi standar konstruksi">
+            <i class="fa-solid fa-arrow-rotate-left"></i>
+            <span>Reset Demo</span>
+          </button>
+
+          <!-- User Profile & Account Dropdown -->
+          <div class="user-profile-wrapper">
+            <button class="user-profile-btn" id="userProfileBtn" title="Menu Akun Mahasiswa">
+              <div class="avatar-circle" id="userAvatarCircle">DP</div>
+              <div class="user-info">
+                <span class="user-name" id="userDisplayName">Dimas Pratama</span>
+                <span class="user-role" id="userDisplayRole">Teknik Sipil UGM</span>
+              </div>
+              <i class="fa-solid fa-chevron-down" style="font-size: 0.7rem; color: var(--sage-dark); margin-left: 2px;"></i>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div class="profile-dropdown-menu" id="profileDropdownMenu">
+              <div class="dropdown-user-header">
+                <div class="dropdown-user-name" id="dropdownUserName">Dimas Pratama</div>
+                <div class="dropdown-user-meta" id="dropdownUserMeta">dimas.sipil@kampus.ac.id</div>
+              </div>
+              <div class="dropdown-item" onclick="openProfileModal()">
+                <i class="fa-solid fa-user-pen"></i> <span>Profil Saya</span>
+              </div>
+              <div class="dropdown-item" onclick="openTeamModal()">
+                <i class="fa-solid fa-users-gear"></i> <span>Kerja Kelompok (Tim)</span>
+              </div>
+              <div class="dropdown-item" onclick="openSupabaseModal()">
+                <i class="fa-solid fa-database"></i> <span>Koneksi Supabase DB</span>
+              </div>
+              <div class="dropdown-item" onclick="navigateTo('panduan')">
+                <i class="fa-solid fa-graduation-cap"></i> <span>Panduan Belajar</span>
+              </div>
+              <div class="dropdown-divider"></div>
+              <div class="dropdown-item text-danger" onclick="handleLogout()">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i> <span>Keluar (Logout)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content Area -->
+      <main class="app-content">
+
+        <!-- ==========================================
+             1. DASHBOARD UTAMA VIEW
+             ========================================== -->
+        <section class="view-section active" id="view-dashboard">
+          
+          <!-- Banner Sapaan Edukatif Mahasiswa -->
+          <div style="margin-bottom: 16px; background: #FFFFFF; border: 1px solid var(--sage-border); padding: 14px 20px; border-radius: var(--border-radius-lg); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 38px; height: 38px; border-radius: 50%; background: var(--sage-light); color: var(--sage-deep); display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                <i class="fa-solid fa-graduation-cap"></i>
+              </div>
+              <div>
+                <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--text-main);" id="dashboardWelcomeMsg">
+                  Selamat Datang di CONSTRACK, Dimas Pratama!
+                </h4>
+                <p style="font-size: 0.78rem; color: var(--sage-dark);">
+                  Sistem monitoring proyek konstruksi untuk praktikum estimasi biaya, penjadwalan, dan evaluasi kinerja Earned Value.
+                </p>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-sm btn-outline" onclick="openTeamModal()">
+                <i class="fa-solid fa-users"></i> Kerja Kelompok
+              </button>
+              <button class="btn btn-sm btn-primary" onclick="navigateTo('panduan')">
+                <i class="fa-solid fa-book-open"></i> Panduan Mahasiswa
+              </button>
+            </div>
+          </div>
+
+          <!-- Banner Proyek Utama -->
+          <div class="project-banner-card" id="dashboardBanner">
+            <div class="banner-top">
+              <div>
+                <div class="banner-badge-group">
+                  <span class="badge-tag tag-sage" id="bannerJenisProyek">Bangunan Gedung</span>
+                  <span class="badge-tag tag-student" id="bannerKodeProyek">PRJ-001</span>
+                  <span class="badge-tag tag-student" id="bannerOwnerBadge"><i class="fa-solid fa-user-check"></i> Proyek Anda</span>
+                </div>
+                <h2 class="banner-project-title" id="bannerNamaProyek">Pembangunan Gedung Perkantoran 3 Lantai</h2>
+                <div class="banner-project-location">
+                  <i class="fa-solid fa-location-dot"></i>
+                  <span id="bannerLokasiProyek">Jl. Kaliurang KM 9, Sleman, D.I. Yogyakarta</span>
+                </div>
+              </div>
+              <div>
+                <div class="banner-status-pill status-green" id="bannerStatusPill">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <span id="bannerStatusText">Kondisi: Terkendali (Deviasi -3.55%)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="banner-meta-grid">
+              <div class="meta-item">
+                <span class="meta-label">Kontraktor Pelaksana</span>
+                <span class="meta-value" id="bannerKontraktor">PT Graha Konstruksi Nusantara</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Konsultan Pengawas (MK)</span>
+                <span class="meta-value" id="bannerKonsultan">PT Artha Pengawas Rekayasa</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Tanggal Mulai Proyek</span>
+                <span class="meta-value" id="bannerTglMulai">01 Juni 2026</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Target Selesai Rencana</span>
+                <span class="meta-value" id="bannerTglSelesai">27 November 2026</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Durasi Pelaksanaan</span>
+                <span class="meta-value" id="bannerDurasi">180 Hari Kalender (26 Minggu)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Statistik Cards Grid -->
+          <div class="grid-stats">
+            <!-- Nilai Kontrak -->
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Nilai Kontrak Fisik</span>
+                <div class="stat-icon sage"><i class="fa-solid fa-file-contract"></i></div>
+              </div>
+              <div class="stat-value" id="statNilaiKontrak">Rp 2.500.000.000</div>
+              <div class="stat-footer">
+                <span>Nilai Net Surat Perjanjian</span>
+                <span class="stat-trend neutral">SPK Resmi</span>
+              </div>
+            </div>
+
+            <!-- Total RAB -->
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Total Anggaran (RAB)</span>
+                <div class="stat-icon dark"><i class="fa-solid fa-calculator"></i></div>
+              </div>
+              <div class="stat-value" id="statTotalRAB">Rp 2.400.000.000</div>
+              <div class="stat-footer">
+                <span>Margin Keuntungan Rencana:</span>
+                <span class="stat-trend positive" id="statMarginRAB">Rp 100.000.000 (4.0%)</span>
+              </div>
+            </div>
+
+            <!-- Biaya Aktual -->
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Biaya Aktual (AC)</span>
+                <div class="stat-icon warning"><i class="fa-solid fa-receipt"></i></div>
+              </div>
+              <div class="stat-value" id="statBiayaAktual">Rp 1.280.000.000</div>
+              <div class="stat-footer">
+                <span>Penyerapan Anggaran:</span>
+                <span class="stat-trend positive" id="statPenyerapan">53.33%</span>
+              </div>
+              <div class="mini-progress-bar">
+                <div class="mini-progress-fill" id="statPenyerapanBar" style="width: 53.33%;"></div>
+              </div>
+            </div>
+
+            <!-- Sisa Anggaran -->
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Sisa Anggaran Kas</span>
+                <div class="stat-icon success"><i class="fa-solid fa-wallet"></i></div>
+              </div>
+              <div class="stat-value" id="statSisaAnggaran">Rp 1.120.000.000</div>
+              <div class="stat-footer">
+                <span>Status Kas:</span>
+                <span class="stat-trend positive"><i class="fa-solid fa-circle-check"></i> Surplus Anggaran</span>
+              </div>
+            </div>
+
+            <!-- Progres Rencana -->
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Progres Rencana (PV)</span>
+                <div class="stat-icon dark"><i class="fa-solid fa-calendar-check"></i></div>
+              </div>
+              <div class="stat-value" id="statProgresRencana">58.40%</div>
+              <div class="stat-footer">
+                <span>Jadwal Baseline Minggu 14</span>
+                <span class="stat-trend neutral">Kumulatif</span>
+              </div>
+              <div class="mini-progress-bar">
+                <div class="mini-progress-fill" id="statRencanaBar" style="width: 58.4%; background: var(--sage-dark);"></div>
+              </div>
+            </div>
+
+            <!-- Progres Aktual -->
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Progres Aktual (EV)</span>
+                <div class="stat-icon sage"><i class="fa-solid fa-trowel-bricks"></i></div>
+              </div>
+              <div class="stat-value" id="statProgresAktual">54.85%</div>
+              <div class="stat-footer">
+                <span>Realisasi Opname Fisik</span>
+                <span class="stat-trend positive" id="statBobotTerpasang">Bobot Terpasang</span>
+              </div>
+              <div class="mini-progress-bar">
+                <div class="mini-progress-fill" id="statAktualBar" style="width: 54.85%;"></div>
+              </div>
+            </div>
+
+            <!-- Deviasi Progres -->
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Deviasi Waktu/Fisik</span>
+                <div class="stat-icon danger" id="statDeviasiIcon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+              </div>
+              <div class="stat-value" id="statDeviasiProgres">-3.55%</div>
+              <div class="stat-footer">
+                <span>Status Keterlambatan:</span>
+                <span class="stat-trend negative" id="statDeviasiBadge">Terlambat Ringan</span>
+              </div>
+            </div>
+
+            <!-- Sisa Waktu -->
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Sisa Waktu Pelaksanaan</span>
+                <div class="stat-icon info"><i class="fa-solid fa-hourglass-half"></i></div>
+              </div>
+              <div class="stat-value" id="statSisaWaktu">82 Hari</div>
+              <div class="stat-footer">
+                <span>Dari total 180 hari</span>
+                <span class="stat-trend neutral">Minggu 14 / 26</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Row: Kurva S & Biaya vs Realisasi -->
+          <div class="grid-cols-2">
+            <!-- Chart Kurva S Mini Preview -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title"><i class="fa-solid fa-chart-line" style="color: var(--sage-dark)"></i> Preview Kurva S (Rencana vs Realisasi)</h3>
+                  <div class="card-subtitle">Grafik kumulatif kemajuan fisik proyek mingguan</div>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="navigateTo('kurva-s')">
+                  Lihat Penuh <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+              <div style="height: 270px; position: relative;">
+                <canvas id="dashboardSCurveChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart Realisasi Biaya Per Divisi -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title"><i class="fa-solid fa-chart-column" style="color: var(--sage-dark)"></i> Anggaran vs Realisasi Per Divisi</h3>
+                  <div class="card-subtitle">Perbandingan biaya rencana RAB vs pengeluaran aktual</div>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="navigateTo('monitoring-biaya')">
+                  Detail Biaya <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+              <div style="height: 270px; position: relative;">
+                <canvas id="dashboardCostChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- EVM Quick Matrix & Ringkasan Kondisi Lapangan -->
+          <div class="grid-cols-2-1">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title"><i class="fa-solid fa-gauge" style="color: var(--status-success)"></i> Indikator Evaluasi Kinerja (EVM - Earned Value)</h3>
+                  <div class="card-subtitle">Analisis varians biaya dan efisiensi waktu pelaksanaan proyek</div>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="navigateTo('evm')">
+                  Analisis Lengkap <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+              
+              <div class="grid-stats" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 12px;">
+                <div style="background: var(--sage-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--sage-border);">
+                  <div style="font-size: 0.7rem; color: var(--sage-dark); font-weight: 700;">SCHEDULE VAR (SV)</div>
+                  <div style="font-size: 1.1rem; font-weight: 800; color: var(--status-danger);" id="dashSV">-Rp 85.200.000</div>
+                  <div style="font-size: 0.68rem; color: var(--sage-dark);">Keterlambatan Progres</div>
+                </div>
+                <div style="background: var(--sage-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--sage-border);">
+                  <div style="font-size: 0.7rem; color: var(--sage-dark); font-weight: 700;">COST VAR (CV)</div>
+                  <div style="font-size: 1.1rem; font-weight: 800; color: var(--status-success);" id="dashCV">+Rp 36.400.000</div>
+                  <div style="font-size: 0.68rem; color: var(--status-success);">Penghematan Biaya</div>
+                </div>
+                <div style="background: var(--sage-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--sage-border);">
+                  <div style="font-size: 0.7rem; color: var(--sage-dark); font-weight: 700;">SPI (JADWAL)</div>
+                  <div style="font-size: 1.1rem; font-weight: 800; color: var(--status-warning);" id="dashSPI">0.939</div>
+                  <div style="font-size: 0.68rem; color: var(--sage-dark);">< 1 (Behind Schedule)</div>
+                </div>
+                <div style="background: var(--sage-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--sage-border);">
+                  <div style="font-size: 0.7rem; color: var(--sage-dark); font-weight: 700;">CPI (BIAYA)</div>
+                  <div style="font-size: 1.1rem; font-weight: 800; color: var(--status-success);" id="dashCPI">1.028</div>
+                  <div style="font-size: 0.68rem; color: var(--status-success);">> 1 (Cost Efficient)</div>
+                </div>
+              </div>
+
+              <div class="formula-box" style="margin-bottom: 0;">
+                <div class="formula-header"><i class="fa-solid fa-circle-info"></i> Kesimpulan Evaluasi Manajemen Proyek:</div>
+                <div style="font-size: 0.82rem; color: var(--text-main);" id="dashEVMText">
+                  Proyek saat ini mengalami keterlambatan fisik minor sebesar <strong>-3.55% (SPI = 0.939)</strong>, namun efisiensi anggaran terjaga sangat baik <strong>(CPI = 1.028)</strong> dengan sisa anggaran memadai. Direkomendasikan penambahan jam lembur (overtime) pada pekerjaan dinding bata ringan & MEP.
+                </div>
+              </div>
+            </div>
+
+            <!-- Milestone Status Card -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title"><i class="fa-solid fa-flag-checkered"></i> Milestone Kritis</h3>
+                  <div class="card-subtitle">Tahapan utama pelaksanaan</div>
+                </div>
+              </div>
+              <div id="dashboardMilestoneList" style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Populated via JS -->
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ==========================================
+             2. DATA PROYEK VIEW (MULTI-PROYEK & KELOMPOK)
+             ========================================== -->
+        <section class="view-section" id="view-proyek">
+          <div class="page-header">
+            <div class="page-title-group">
+              <h1><i class="fa-solid fa-diagram-project" style="color: var(--sage-dark)"></i> Data & Portofolio Proyek</h1>
+              <p>Kelola proyek pribadi dan proyek kelompok mahasiswa (Gedung, Jalan, Jembatan, Drainase, Irigasi, dll.).</p>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-outline" onclick="openTeamModal()">
+                <i class="fa-solid fa-users"></i> Kerja Kelompok (Tim)
+              </button>
+              <button class="btn btn-outline" onclick="openExampleModal('proyek')"><i class="fa-solid fa-circle-question"></i> Contoh Proyek</button>
+                <button class="btn btn-primary" id="btnTambahProyek">
+                <i class="fa-solid fa-plus"></i> Tambah Proyek Baru
+              </button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="table-toolbar">
+              <div class="table-search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="table-search-input" id="searchProyek" placeholder="Cari nama proyek, lokasi, jenis...">
+              </div>
+              <div class="table-filters">
+                <select class="filter-select" id="filterJenisProyek">
+                  <option value="all">Semua Jenis Konstruksi</option>
+                  <option value="Bangunan Gedung">Bangunan Gedung</option>
+                  <option value="Proyek Jalan">Proyek Jalan</option>
+                  <option value="Proyek Jembatan">Proyek Jembatan</option>
+                  <option value="Proyek Drainase">Proyek Drainase</option>
+                  <option value="Proyek Irigasi">Proyek Irigasi</option>
+                  <option value="Proyek Infrastruktur Lainnya">Infrastruktur Lainnya</option>
+                </select>
+                <select class="filter-select" id="filterStatusProyek">
+                  <option value="all">Semua Status</option>
+                  <option value="Sedang Berlangsung">Sedang Berlangsung</option>
+                  <option value="Selesai">Selesai</option>
+                  <option value="Terlambat">Terlambat</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Kode</th>
+                    <th>Nama Proyek</th>
+                    <th>Jenis & Lokasi</th>
+                    <th>Pihak Terlibat</th>
+                    <th>Nilai Kontrak & RAB</th>
+                    <th>Jadwal Pelaksanaan</th>
+                    <th>Status</th>
+                    <th style="text-align: center;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBodyProyek">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             3. RENCANA ANGGARAN BIAYA (RAB) VIEW
+             ========================================== -->
+        <section class="view-section" id="view-rab">
+          <div class="page-header">
+            <div class="page-title-group">
+              <h1><i class="fa-solid fa-file-invoice-dollar" style="color: var(--sage-dark)"></i> Rencana Anggaran Biaya (RAB)</h1>
+              <p>Penyusunan anggaran biaya konstruksi berdasarkan volume fisik pekerjaan dan Analisa Harga Satuan (AHSP).</p>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-outline" id="btnExportRABCSV">
+                <i class="fa-solid fa-file-csv"></i> Export CSV
+              </button>
+              <button class="btn btn-outline" onclick="openExampleModal('rab')"><i class="fa-solid fa-circle-question"></i> Contoh RAB</button>
+                <button class="btn btn-primary" id="btnTambahRABItem">
+                <i class="fa-solid fa-plus"></i> Tambah Item Pekerjaan
+              </button>
+            </div>
+          </div>
+
+          <!-- Formula Explanatory Box (Edukatif Mahasiswa) -->
+          <div class="formula-box">
+            <div class="formula-header"><i class="fa-solid fa-graduation-cap"></i> Rumus Penting Penyusunan RAB:</div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;">
+              <div>
+                <span class="formula-code">Jumlah Harga = Volume × Harga Satuan</span>
+                <p class="formula-desc">Perkalian volume fisik pekerjaan dengan analisa harga satuan pekerjaan (AHSP) SNI.</p>
+              </div>
+              <div>
+                <span class="formula-code">Total RAB = ∑ Seluruh Jumlah Harga</span>
+                <p class="formula-desc">Jumlah total nilai seluruh kelompok divisi pekerjaan (Budget at Completion / BAC).</p>
+              </div>
+              <div>
+                <span class="formula-code">Bobot (%) = (Jumlah Harga / Total RAB) × 100%</span>
+                <p class="formula-desc">Porsi persentase suatu item terhadap total anggaran proyek (Total seluruh bobot = 100%).</p>
+              </div>
+            </div>
+            <div class="student-tip-box">
+              <i class="fa-solid fa-lightbulb"></i>
+              <span><strong>Tips Mahasiswa:</strong> Pastikan satuan volume sesuai standar (m³ untuk galian/beton, m² untuk dinding/lantai, m' untuk pipa/pagar, kg/ton untuk baja tulangan, dan ls untuk pekerjaan persiapan/umum).</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="table-toolbar">
+              <div class="table-search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="table-search-input" id="searchRAB" placeholder="Cari uraian pekerjaan atau kode...">
+              </div>
+              <div class="table-filters">
+                <select class="filter-select" id="filterDivisiRAB">
+                  <option value="all">Semua Divisi Pekerjaan</option>
+                  <!-- Populated via JS -->
+                </select>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table" id="tableRAB">
+                <thead>
+                  <tr>
+                    <th style="width: 70px;">Kode</th>
+                    <th>Uraian Pekerjaan</th>
+                    <th style="text-align: right;">Volume</th>
+                    <th style="text-align: center;">Satuan</th>
+                    <th style="text-align: right;">Harga Satuan (Rp)</th>
+                    <th style="text-align: right;">Jumlah Harga (Rp)</th>
+                    <th style="text-align: right;">Bobot (%)</th>
+                    <th style="text-align: center;">Status</th>
+                    <th style="text-align: center; width: 105px;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBodyRAB">
+                  <!-- Populated via JS -->
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colspan="5" style="text-align: right;">TOTAL RENCANA ANGGARAN BIAYA (RAB)</td>
+                    <td style="text-align: right; color: var(--sage-deep); font-weight: 800;" id="rabFooterTotalHarga">Rp 2.400.000.000</td>
+                    <td style="text-align: right; color: var(--status-success); font-weight: 800;" id="rabFooterTotalBobot">100.00%</td>
+                    <td colspan="2"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             4. MONITORING BIAYA VIEW
+             ========================================== -->
+        <section class="view-section" id="view-monitoring-biaya">
+          <div class="page-header">
+            <div class="page-title-group">
+              <h1><i class="fa-solid fa-chart-pie" style="color: var(--sage-dark)"></i> Monitoring & Realisasi Biaya</h1>
+              <p>Pemantauan pengeluaran riil kas proyek terhadap pagu anggaran rencana RAB serta evaluasi varians.</p>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-outline" id="btnExportCostCSV">
+                <i class="fa-solid fa-file-csv"></i> Export CSV
+              </button>
+              <button class="btn btn-outline" onclick="openExampleModal('biaya')"><i class="fa-solid fa-circle-question"></i> Contoh Biaya</button>
+                <button class="btn btn-primary" id="btnTambahPengeluaran">
+                <i class="fa-solid fa-plus"></i> Catat Biaya Aktual
+              </button>
+            </div>
+          </div>
+
+          <!-- Formula Explanatory Box -->
+          <div class="formula-box">
+            <div class="formula-header"><i class="fa-solid fa-graduation-cap"></i> Rumus Pengendalian Biaya Konstruksi:</div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+              <div>
+                <span class="formula-code">Selisih Biaya = Anggaran Rencana - Biaya Aktual</span>
+                <p class="formula-desc">Positif (+) = Penghematan (Cost Underrun); Negatif (-) = Pembengkakan Biaya (Overbudget).</p>
+              </div>
+              <div>
+                <span class="formula-code">Penyerapan (%) = (Biaya Aktual / Anggaran Rencana) × 100%</span>
+                <p class="formula-desc">Persentase dana yang sudah terserap dari pagu anggaran yang disediakan.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Summary Stats -->
+          <div class="grid-stats">
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Anggaran Rencana (RAB)</span>
+                <div class="stat-icon dark"><i class="fa-solid fa-calculator"></i></div>
+              </div>
+              <div class="stat-value" id="costStatRAB">Rp 2.400.000.000</div>
+              <div class="stat-footer">Pagu Anggaran Baseline</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Total Biaya Aktual</span>
+                <div class="stat-icon warning"><i class="fa-solid fa-money-check-dollar"></i></div>
+              </div>
+              <div class="stat-value" id="costStatAktual">Rp 1.280.000.000</div>
+              <div class="stat-footer">Realisasi s/d Hari Ini</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Sisa Anggaran Tersedia</span>
+                <div class="stat-icon success"><i class="fa-solid fa-piggy-bank"></i></div>
+              </div>
+              <div class="stat-value" id="costStatSisa">Rp 1.120.000.000</div>
+              <div class="stat-footer">Anggaran Rencana - Aktual</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Penyerapan Anggaran</span>
+                <div class="stat-icon sage"><i class="fa-solid fa-percent"></i></div>
+              </div>
+              <div class="stat-value" id="costStatPenyerapan">53.33%</div>
+              <div class="stat-footer">
+                <span class="badge badge-success"><i class="fa-solid fa-shield-halved"></i> Biaya Terkendali</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cost Comparison Chart -->
+          <div class="card" style="margin-bottom: 22px;">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title"><i class="fa-solid fa-chart-bar"></i> Perbandingan Anggaran Rencana vs Realisasi Tiap Divisi</h3>
+                <div class="card-subtitle">Deteksi divisi dengan penyerapan normal maupun potensi cost overrun</div>
+              </div>
+            </div>
+            <div style="height: 300px; position: relative;">
+              <canvas id="costComparisonChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Division Breakdown Table -->
+          <div class="card" style="margin-bottom: 22px;">
+            <div class="card-header">
+              <h3 class="card-title"><i class="fa-solid fa-table-list"></i> Ringkasan Biaya Berdasarkan Divisi Pekerjaan</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Divisi Pekerjaan</th>
+                    <th style="text-align: right;">Anggaran Rencana (Rp)</th>
+                    <th style="text-align: right;">Biaya Aktual (Rp)</th>
+                    <th style="text-align: right;">Selisih Anggaran (Rp)</th>
+                    <th style="text-align: right;">Penyerapan (%)</th>
+                    <th style="text-align: center;">Status Biaya</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBodyCostDivision">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Actual Expenses Log Table -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title"><i class="fa-solid fa-receipt"></i> Log Transaksi Biaya Aktual (Buku Kas Keluar Proyek)</h3>
+                <div class="card-subtitle">Pencatatan nota material, upah tenaga kerja, sewa alat berat, dan subkontraktor</div>
+              </div>
+            </div>
+
+            <div class="table-toolbar">
+              <div class="table-search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="table-search-input" id="searchExpense" placeholder="Cari transaksi, nomor bukti, vendor...">
+              </div>
+              <div class="table-filters">
+                <select class="filter-select" id="filterExpenseCategory">
+                  <option value="all">Semua Kategori</option>
+                  <!-- Populated via JS -->
+                </select>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Tanggal</th>
+                    <th>No. Bukti</th>
+                    <th>Kategori Divisi</th>
+                    <th>Uraian Pengeluaran</th>
+                    <th>Pihak Penerima / Vendor</th>
+                    <th style="text-align: right;">Nominal (Rp)</th>
+                    <th style="text-align: center;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBodyExpenses">
+                  <!-- Populated via JS -->
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colspan="5" style="text-align: right;">TOTAL PENGELUARAN AKTUAL</td>
+                    <td style="text-align: right; color: var(--sage-deep); font-weight: 800;" id="costFooterTotalAktual">Rp 1.280.000.000</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             5. MONITORING WAKTU & JADWAL VIEW
+             ========================================== -->
+        <section class="view-section" id="view-monitoring-waktu">
+          <div class="page-header">
+            <div class="page-title-group">
+              <h1><i class="fa-solid fa-calendar-days" style="color: var(--sage-dark)"></i> Jadwal Pekerjaan & Gantt Chart</h1>
+              <p>Perencanaan durasi, tanggal mulai, target selesai, dan visualisasi balok Gantt Chart mingguan.</p>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-outline" onclick="openExampleModal('jadwal')"><i class="fa-solid fa-circle-question"></i> Contoh Jadwal</button>
+                <button class="btn btn-outline" id="btnExportScheduleCSV">
+                <i class="fa-solid fa-file-csv"></i> Export CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- Schedule Metrics -->
+          <div class="grid-stats">
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Tanggal Mulai Proyek</span>
+                <div class="stat-icon dark"><i class="fa-solid fa-play"></i></div>
+              </div>
+              <div class="stat-value" id="schedTglMulai">01 Jun 2026</div>
+              <div class="stat-footer">Surat Perintah Mulai Kerja (SPMK)</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Target Selesai Rencana</span>
+                <div class="stat-icon success"><i class="fa-solid fa-flag-checkered"></i></div>
+              </div>
+              <div class="stat-value" id="schedTglSelesai">27 Nov 2026</div>
+              <div class="stat-footer">Durasi Kontrak: 180 Hari</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Proyeksi Selesai Aktual</span>
+                <div class="stat-icon warning"><i class="fa-solid fa-clock-rotate-left"></i></div>
+              </div>
+              <div class="stat-value" id="schedTglAktual">05 Des 2026</div>
+              <div class="stat-footer">Proyeksi Terkini (Estimasi Deviasi)</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Deviasi Waktu (Keterlambatan)</span>
+                <div class="stat-icon danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
+              </div>
+              <div class="stat-value" id="schedDeviasiHari">+8 Hari</div>
+              <div class="stat-footer">
+                <span class="badge badge-warning">Perlu Jam Lembur</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gantt Chart Card -->
+          <div class="card" style="margin-bottom: 22px;">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title"><i class="fa-solid fa-timeline"></i> Visualisasi Jadwal (Gantt Chart Proyek)</h3>
+                <div class="card-subtitle">
+                  <span style="display: inline-block; width: 12px; height: 12px; background: var(--sage-light); border: 1px solid var(--sage-border); border-radius: 2px; margin-right: 4px;"></span> Rencana Baseline &nbsp;|&nbsp;
+                  <span style="display: inline-block; width: 12px; height: 12px; background: var(--sage-primary); border-radius: 2px; margin-right: 4px;"></span> Progres Fisik Aktual &nbsp;|&nbsp;
+                  <span style="display: inline-block; width: 12px; height: 12px; background: var(--status-success); border-radius: 2px; margin-right: 4px;"></span> Selesai 100%
+                </div>
+              </div>
+            </div>
+            
+            <div class="gantt-container" id="ganttChartWrapper">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Schedule Table Details -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title"><i class="fa-solid fa-table"></i> Tabel Rincian Jadwal & Durasi Pekerjaan</h3>
+            </div>
+
+            <div class="table-toolbar">
+              <div class="table-search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="table-search-input" id="searchSchedule" placeholder="Cari nama pekerjaan jadwal...">
+              </div>
+              <div class="table-filters">
+                <select class="filter-select" id="filterStatusJadwal">
+                  <option value="all">Semua Status Pekerjaan</option>
+                  <option value="Belum Dimulai">Belum Dimulai</option>
+                  <option value="Sedang Berlangsung">Sedang Berlangsung</option>
+                  <option value="Selesai">Selesai</option>
+                  <option value="Terlambat">Terlambat</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Kode</th>
+                    <th>Nama Pekerjaan</th>
+                    <th>Rencana Mulai</th>
+                    <th>Rencana Selesai</th>
+                    <th>Aktual Mulai</th>
+                    <th>Aktual Selesai</th>
+                    <th style="text-align: center;">Durasi</th>
+                    <th style="text-align: center;">Status</th>
+                    <th style="text-align: center;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBodySchedule">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             6. PROGRESS PEKERJAAN VIEW
+             ========================================== -->
+        <section class="view-section" id="view-progress-pekerjaan">
+          <div class="page-header">
+            <div class="page-title-group">
+              <h1><i class="fa-solid fa-bars-progress" style="color: var(--sage-dark)"></i> Pemantauan Progress Pekerjaan</h1>
+              <p>Perhitungan capaian fisik terpasang berdasarkan pembobotan nilai kontrak (Weighted Progress Analysis).</p>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-outline" onclick="openExampleModal('progres')"><i class="fa-solid fa-circle-question"></i> Contoh Progres</button>
+                <button class="btn btn-outline" id="btnExportProgressCSV">
+                <i class="fa-solid fa-file-csv"></i> Export CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- Formula Explanatory Box -->
+          <div class="formula-box">
+            <div class="formula-header"><i class="fa-solid fa-calculator"></i> Standar Perhitungan Progres Tertimbang Manajemen Konstruksi:</div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+              <div>
+                <span class="formula-code">Kontribusi Item (%) = (Bobot × Progres Aktual) / 100</span>
+                <p class="formula-desc">Sumbangsih capaian persentase setiap item terhadap progres total proyek.</p>
+              </div>
+              <div>
+                <span class="formula-code">Progres Total Proyek = ∑ Seluruh Kontribusi Item</span>
+                <p class="formula-desc">Akumulasi seluruh bobot terpasang nyata di lapangan (Realisasi Opname Fisik).</p>
+              </div>
+              <div>
+                <span class="formula-code">Deviasi Progres (%) = Progres Aktual - Progres Rencana</span>
+                <p class="formula-desc">Jika positif (+) berarti proyek lebih cepat, jika negatif (-) berarti terjadi keterlambatan.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Overall Progress Overview Banner -->
+          <div class="card" style="margin-bottom: 22px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 18px;">
+              <div>
+                <div style="font-size: 0.76rem; font-weight: 700; color: var(--sage-dark); text-transform: uppercase;">Total Progres Fisik Proyek (Tertimbang)</div>
+                <div style="display: flex; align-items: baseline; gap: 14px; margin-top: 4px;">
+                  <span style="font-size: 2.4rem; font-weight: 800; color: var(--text-main);" id="progTotalAktual">54.85%</span>
+                  <span style="font-size: 1rem; color: var(--sage-dark);" id="progTotalRencana">Target: 58.40%</span>
+                  <span class="badge badge-warning" id="progTotalDeviasiBadge" style="font-size: 0.82rem; padding: 5px 10px;">Deviasi: -3.55%</span>
+                </div>
+              </div>
+              <div style="width: 280px;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.72rem; font-weight: 700; margin-bottom: 4px; color: var(--sage-dark);">
+                  <span>0%</span>
+                  <span>Opname Lapangan</span>
+                  <span>100%</span>
+                </div>
+                <div style="height: 12px; background: var(--sage-light); border-radius: 6px; overflow: hidden; position: relative;">
+                  <div id="progBarActualFill" style="width: 54.85%; height: 100%; background: var(--sage-primary); border-radius: 6px;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tasks Progress Table -->
+          <div class="card">
+            <div class="table-toolbar">
+              <div class="table-search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="table-search-input" id="searchProgress" placeholder="Cari pekerjaan...">
+              </div>
+              <div class="table-filters">
+                <select class="filter-select" id="filterDivisiProgress">
+                  <option value="all">Semua Divisi Pekerjaan</option>
+                  <!-- Populated via JS -->
+                </select>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Kode</th>
+                    <th>Uraian Pekerjaan</th>
+                    <th style="text-align: right;">Bobot (%)</th>
+                    <th style="text-align: right;">Rencana (%)</th>
+                    <th style="text-align: right;">Aktual (%)</th>
+                    <th style="text-align: right;">Kontribusi (%)</th>
+                    <th style="text-align: right;">Deviasi (%)</th>
+                    <th style="text-align: center;">Status</th>
+                    <th style="text-align: center; width: 130px;">Update Cepat</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBodyProgress">
+                  <!-- Populated via JS -->
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colspan="2" style="text-align: right;">TOTAL PROGRESS PROYEK</td>
+                    <td style="text-align: right; color: var(--text-main);" id="progFooterBobot">100.00%</td>
+                    <td style="text-align: right; color: var(--sage-dark);" id="progFooterRencana">58.40%</td>
+                    <td style="text-align: right; color: var(--sage-deep); font-weight: 800;" id="progFooterAktual">54.85%</td>
+                    <td style="text-align: right; color: var(--status-success); font-weight: 800;" id="progFooterKontribusi">54.85%</td>
+                    <td style="text-align: right; color: var(--status-danger); font-weight: 800;" id="progFooterDeviasi">-3.55%</td>
+                    <td colspan="2"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             7. KURVA S (S-CURVE) VIEW
+             ========================================== -->
+        <section class="view-section" id="view-kurva-s">
+          <div class="page-header">
+            <div class="page-title-group">
+              <h1><i class="fa-solid fa-chart-line" style="color: var(--sage-dark)"></i> Kurva S Proyek Konstruksi (S-Curve)</h1>
+              <p>Perbandingan kurva progres rencana kumulatif terhadap progres aktual mingguan proyek.</p>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-outline" onclick="openExampleModal('kurvas')"><i class="fa-solid fa-circle-question"></i> Contoh Kurva S</button>
+                <button class="btn btn-outline" id="btnExportSCurveCSV">
+                <i class="fa-solid fa-file-csv"></i> Export CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- S-Curve Overview Cards -->
+          <div class="grid-stats">
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Progres Rencana Saat Ini</span>
+                <div class="stat-icon dark"><i class="fa-solid fa-calendar-check"></i></div>
+              </div>
+              <div class="stat-value" id="scurveStatRencana">58.40%</div>
+              <div class="stat-footer">Baseline Minggu Ke-14</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Progres Aktual Saat Ini</span>
+                <div class="stat-icon sage"><i class="fa-solid fa-trowel-bricks"></i></div>
+              </div>
+              <div class="stat-value" id="scurveStatAktual">54.85%</div>
+              <div class="stat-footer">Realisasi Fisik Terpasang</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Deviasi Progres</span>
+                <div class="stat-icon danger"><i class="fa-solid fa-arrows-split-up-and-left"></i></div>
+              </div>
+              <div class="stat-value" id="scurveStatDeviasi">-3.55%</div>
+              <div class="stat-footer">
+                <span class="badge badge-warning">Keterlambatan Ringan</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Status Kondisi Proyek</span>
+                <div class="stat-icon success"><i class="fa-solid fa-heart-pulse"></i></div>
+              </div>
+              <div class="stat-value" style="font-size: 1.2rem; color: var(--status-warning);" id="scurveStatKondisi">Kuning (Waspada)</div>
+              <div class="stat-footer">Rekomendasi lembur struktur</div>
+            </div>
+          </div>
+
+          <!-- S-Curve Large Chart (Warna Hijau Sage) -->
+          <div class="card" style="margin-bottom: 22px;">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title"><i class="fa-solid fa-wave-square"></i> Grafik Kurva S Kumulatif Mingguan (26 Minggu)</h3>
+                <div class="card-subtitle">Sumbu X: Waktu Pelaksanaan (Minggu) | Sumbu Y: Progres Kumulatif (%)</div>
+              </div>
+            </div>
+            <div style="height: 380px; position: relative;">
+              <canvas id="mainSCurveChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Weekly S-Curve Data Table -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title"><i class="fa-solid fa-table"></i> Tabel Progres Mingguan & Kumulatif Kurva S</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="text-align: center;">Minggu</th>
+                    <th>Periode</th>
+                    <th style="text-align: right;">Rencana Mingguan (%)</th>
+                    <th style="text-align: right;">Rencana Kumulatif (%)</th>
+                    <th style="text-align: right;">Aktual Mingguan (%)</th>
+                    <th style="text-align: right;">Aktual Kumulatif (%)</th>
+                    <th style="text-align: right;">Deviasi (%)</th>
+                    <th style="text-align: center;">Kondisi</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBodySCurve">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             8. CASH FLOW (ARUS KAS) VIEW
+             ========================================== -->
+        <section class="view-section" id="view-cash-flow">
+          <div class="page-header">
+            <div class="page-title-group">
+              <h1><i class="fa-solid fa-money-bill-trend-up" style="color: var(--sage-dark)"></i> Manajemen Arus Kas (Cash Flow)</h1>
+              <p>Perencanaan dan realisasi arus kas penerimaan termin vs pengeluaran modal kerja proyek.</p>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-outline" id="btnExportCashFlowCSV">
+                <i class="fa-solid fa-file-csv"></i> Export CSV
+              </button>
+              <button class="btn btn-outline" onclick="openExampleModal('cashflow')"><i class="fa-solid fa-circle-question"></i> Contoh Arus Kas</button>
+                <button class="btn btn-primary" id="btnTambahCashFlow">
+                <i class="fa-solid fa-plus"></i> Tambah Transaksi Kas
+              </button>
+            </div>
+          </div>
+
+          <!-- Cash Flow Stats -->
+          <div class="grid-stats">
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Total Pemasukan Termin</span>
+                <div class="stat-icon success"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+              </div>
+              <div class="stat-value" id="cfStatPemasukan">Rp 1.750.000.000</div>
+              <div class="stat-footer">DP 20% + Termin I 25% + Termin II 25%</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Total Pengeluaran Kas</span>
+                <div class="stat-icon danger"><i class="fa-solid fa-money-bill-transfer"></i></div>
+              </div>
+              <div class="stat-value" id="cfStatPengeluaran">Rp 1.280.000.000</div>
+              <div class="stat-footer">Material, Upah, Alat & Subkon</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Saldo Kas Proyek Saat Ini</span>
+                <div class="stat-icon sage"><i class="fa-solid fa-vault"></i></div>
+              </div>
+              <div class="stat-value" id="cfStatSaldo">Rp 470.000.000</div>
+              <div class="stat-footer">
+                <span class="badge badge-success"><i class="fa-solid fa-circle-check"></i> Likuiditas Aman</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Plafon Termin Tersisa</span>
+                <div class="stat-icon info"><i class="fa-solid fa-sack-dollar"></i></div>
+              </div>
+              <div class="stat-value" id="cfStatTerminSisa">Rp 750.000.000</div>
+              <div class="stat-footer">Termin III (20%) + Retensi (10%)</div>
+            </div>
+          </div>
+
+          <!-- Cash Flow Chart -->
+          <div class="card" style="margin-bottom: 22px;">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title"><i class="fa-solid fa-chart-line"></i> Grafik Arus Kas Proyek (Penerimaan, Pengeluaran & Saldo Kas)</h3>
+                <div class="card-subtitle">Analisis tren modal kerja dan saldo kumulatif bulanan</div>
+              </div>
+            </div>
+            <div style="height: 320px; position: relative;">
+              <canvas id="cashFlowChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Monthly Cash Flow Table -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title"><i class="fa-solid fa-table"></i> Rincian Jadwal Arus Kas Bulanan</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Bulan / Periode</th>
+                    <th>Uraian Pemasukan</th>
+                    <th style="text-align: right;">Pemasukan (Rp)</th>
+                    <th>Rincian Pengeluaran</th>
+                    <th style="text-align: right;">Pengeluaran (Rp)</th>
+                    <th style="text-align: right;">Arus Kas Bersih (Rp)</th>
+                    <th style="text-align: right;">Saldo Kumulatif (Rp)</th>
+                    <th style="text-align: center;">Keterangan</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBodyCashFlow">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             9. EARNED VALUE MANAGEMENT (EVM) VIEW
+             ========================================== -->
+        <section class="view-section" id="view-evm">
+          <div class="page-header">
+            <div class="page-title-group">
+              <h1><i class="fa-solid fa-chart-simple" style="color: var(--sage-dark)"></i> Analisis Biaya & Waktu (Earned Value Management)</h1>
+              <p>Metode evaluasi kinerja terpadu untuk memantau kemajuan jadwal dan efisiensi biaya secara objektif.</p>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-outline" onclick="openExampleModal('evm')"><i class="fa-solid fa-circle-question"></i> Contoh EVM</button>
+                <button class="btn btn-outline" id="btnExportEVMCSV">
+                <i class="fa-solid fa-file-csv"></i> Export Analisis CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- EVM Dynamic Executive Banner -->
+          <div class="evm-interpretation-banner" id="evmBanner">
+            <div class="evm-status-icon-wrap green" id="evmIconWrap">
+              <i class="fa-solid fa-gauge-high"></i>
+            </div>
+            <div>
+              <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin-bottom: 3px;" id="evmBannerTitle">
+                Status Kinerja: Biaya Efisien, Keterlambatan Waktu Minor
+              </h3>
+              <p style="font-size: 0.82rem; color: var(--sage-dark); line-height: 1.5;" id="evmBannerDesc">
+                Indeks Kinerja Biaya (CPI = 1.028 > 1) menunjukkan pengeluaran aktual lebih hemat dari nilai hasil pekerjaan. Indeks Kinerja Jadwal (SPI = 0.939 < 1) mengindikasikan deviasi waktu sebesar -3.55%.
+              </p>
+            </div>
+          </div>
+
+          <!-- EVM 3 Core Metrics -->
+          <div class="grid-cols-3" style="margin-bottom: 22px;">
+            <div class="evm-card">
+              <div class="evm-card-badge">RENCANA ANGGARAN (PV / BCWS)</div>
+              <div class="evm-card-title" id="evmPV">Rp 1.401.600.000</div>
+              <div class="evm-card-desc"><strong>Planned Value:</strong> Nilai anggaran pekerjaan yang dijadwalkan selesai pada saat ini (% Rencana × BAC).</div>
+            </div>
+
+            <div class="evm-card">
+              <div class="evm-card-badge">NILAI HASIL FISIK (EV / BCWP)</div>
+              <div class="evm-card-title" style="color: var(--sage-deep);" id="evmEV">Rp 1.316.400.000</div>
+              <div class="evm-card-desc"><strong>Earned Value:</strong> Nilai anggaran dari bobot fisik yang benar-benar terselesaikan di lapangan (% Aktual × BAC).</div>
+            </div>
+
+            <div class="evm-card">
+              <div class="evm-card-badge">BIAYA AKTUAL (AC / ACWP)</div>
+              <div class="evm-card-title" style="color: var(--sage-dark);" id="evmAC">Rp 1.280.000.000</div>
+              <div class="evm-card-desc"><strong>Actual Cost:</strong> Total biaya riil kas yang telah dibayarkan untuk melaksanakan pekerjaan s/d hari ini.</div>
+            </div>
+          </div>
+
+          <!-- EVM Variances & Indexes Matrix -->
+          <div class="evm-matrix-grid">
+            <div class="evm-card">
+              <div class="evm-card-badge">SCHEDULE VARIANCE (SV)</div>
+              <div class="evm-card-title" id="evmSV">-Rp 85.200.000</div>
+              <div class="formula-code">SV = EV - PV</div>
+              <div class="evm-card-desc" id="evmSVText">SV < 0: Pekerjaan mengalami keterlambatan jadwal.</div>
+            </div>
+
+            <div class="evm-card">
+              <div class="evm-card-badge">COST VARIANCE (CV)</div>
+              <div class="evm-card-title" style="color: var(--status-success);" id="evmCV">+Rp 36.400.000</div>
+              <div class="formula-code">CV = EV - AC</div>
+              <div class="evm-card-desc" id="evmCVText">CV > 0: Terjadi penghematan / efisiensi biaya.</div>
+            </div>
+
+            <div class="evm-card">
+              <div class="evm-card-badge">SCHEDULE PERFORMANCE INDEX (SPI)</div>
+              <div class="evm-card-title" style="color: var(--status-warning);" id="evmSPI">0.939</div>
+              <div class="formula-code">SPI = EV / PV</div>
+              <div class="evm-card-desc" id="evmSPIText">SPI < 1: Laju kemajuan fisik lebih lambat dari jadwal.</div>
+            </div>
+
+            <div class="evm-card">
+              <div class="evm-card-badge">COST PERFORMANCE INDEX (CPI)</div>
+              <div class="evm-card-title" style="color: var(--status-success);" id="evmCPI">1.028</div>
+              <div class="formula-code">CPI = EV / AC</div>
+              <div class="evm-card-desc" id="evmCPIText">CPI > 1: Penggunaan biaya proyek sangat hemat dan efisien.</div>
+            </div>
+          </div>
+
+          <!-- EVM Forecasting (EAC, ETC, VAC) -->
+          <div class="evm-matrix-grid">
+            <div class="evm-card">
+              <div class="evm-card-badge">BUDGET AT COMPLETION (BAC)</div>
+              <div class="evm-card-title" id="evmBAC">Rp 2.400.000.000</div>
+              <div class="evm-card-desc">Total pagu anggaran rencana proyek secara keseluruhan (Total RAB).</div>
+            </div>
+
+            <div class="evm-card">
+              <div class="evm-card-badge">ESTIMATE AT COMPLETION (EAC)</div>
+              <div class="evm-card-title" style="color: var(--sage-deep);" id="evmEAC">Rp 2.333.682.000</div>
+              <div class="formula-code">EAC = BAC / CPI</div>
+              <div class="evm-card-desc">Prakiraan total biaya saat proyek selesai nanti berdasarkan tren CPI saat ini.</div>
+            </div>
+
+            <div class="evm-card">
+              <div class="evm-card-badge">ESTIMATE TO COMPLETE (ETC)</div>
+              <div class="evm-card-title" id="evmETC">Rp 1.053.682.000</div>
+              <div class="formula-code">ETC = EAC - AC</div>
+              <div class="evm-card-desc">Estimasi dana yang masih dibutuhkan untuk menuntaskan sisa proyek.</div>
+            </div>
+
+            <div class="evm-card">
+              <div class="evm-card-badge">VARIANCE AT COMPLETION (VAC)</div>
+              <div class="evm-card-title" style="color: var(--status-success);" id="evmVAC">+Rp 66.318.000</div>
+              <div class="formula-code">VAC = BAC - EAC</div>
+              <div class="evm-card-desc" id="evmVACText">VAC > 0: Proyeksi keuntungan efisiensi kas di akhir proyek.</div>
+            </div>
+          </div>
+
+          <!-- EVM Trend Line Chart -->
+          <div class="card" style="margin-bottom: 22px;">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title"><i class="fa-solid fa-chart-area"></i> Grafik Tren EVM (Planned Value vs Earned Value vs Actual Cost)</h3>
+                <div class="card-subtitle">Visualisasi pergerakan nilai PV, EV, dan AC mingguan</div>
+              </div>
+            </div>
+            <div style="height: 340px; position: relative;">
+              <canvas id="evmTrendChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Educational Interpretation Reference Table -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title"><i class="fa-solid fa-book-bookmark"></i> Panduan Membaca Indikator EVM (Untuk Mahasiswa)</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Indikator</th>
+                    <th>Nilai</th>
+                    <th>Arti & Interpretasi</th>
+                    <th>Status Proyek Anda Saat Ini</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>SPI (Jadwal)</strong></td>
+                    <td><code>SPI > 1.0</code><br><code>SPI = 1.0</code><br><code>SPI < 1.0</code></td>
+                    <td>Pekerjaan lebih cepat dari jadwal.<br>Pekerjaan tepat sesuai jadwal.<br>Pekerjaan mengalami keterlambatan fisik.</td>
+                    <td id="evmTableSPIStatus"></td>
+                  </tr>
+                  <tr>
+                    <td><strong>CPI (Biaya)</strong></td>
+                    <td><code>CPI > 1.0</code><br><code>CPI = 1.0</code><br><code>CPI < 1.0</code></td>
+                    <td>Penggunaan biaya hemat (Cost Underrun).<br>Penggunaan biaya tepat sesuai rencana.<br>Terjadi pemborosan biaya (Cost Overrun).</td>
+                    <td id="evmTableCPIStatus"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             10. LAPORAN PROYEK VIEW (TUGAS KULIAH)
+             ========================================== -->
+        <section class="view-section" id="view-laporan">
+          <div class="page-header">
+            <div class="page-title-group">
+              <h1><i class="fa-solid fa-file-lines" style="color: var(--sage-dark)"></i> Laporan Proyek Konstruksi</h1>
+              <p>Format pelaporan berkala resmi dan tugas besar kuliah, siap cetak (PDF) dan export CSV.</p>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-outline" id="btnPrintReport">
+                <i class="fa-solid fa-print"></i> Cetak / Simpan PDF
+              </button>
+              <button class="btn btn-primary" id="btnExportExecutiveCSV">
+                <i class="fa-solid fa-file-csv"></i> Export CSV Lengkap
+              </button>
+            </div>
+          </div>
+
+          <!-- Report Options Bar -->
+          <div class="card" style="margin-bottom: 22px;">
+            <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 240px;">
+                <label class="form-label">Pilih Jenis Laporan:</label>
+                <select class="form-control" id="selectReportType">
+                  <option value="komprehensif">Laporan Manajemen Komprehensif (Lengkap)</option>
+                  <option value="rab">Laporan Rencana Anggaran Biaya (RAB)</option>
+                  <option value="biaya">Laporan Monitoring Realisasi Biaya</option>
+                  <option value="jadwal">Laporan Jadwal & Durasi Waktu</option>
+                  <option value="progres">Laporan Progres Fisik & Kurva S</option>
+                  <option value="cashflow">Laporan Arus Kas (Cash Flow)</option>
+                  <option value="evm">Laporan Kinerja Earned Value (EVM)</option>
+                </select>
+              </div>
+
+              <div style="min-width: 200px;">
+                <label class="form-label">Periode Evaluasi:</label>
+                <select class="form-control" id="selectReportPeriod">
+                  <option value="current">Minggu Berjalan (Minggu 14 - Nov 2026)</option>
+                  <option value="all">Keseluruhan Proyek (Minggu 1 s/d 26)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Printable Document Container -->
+          <div class="card" id="printableReportCanvas" style="padding: 32px; background: #FFFFFF;">
+            
+            <!-- Official Kop Surat / Letterhead -->
+            <div class="print-header" style="border-bottom: 2px solid var(--sage-deep); padding-bottom: 14px; margin-bottom: 22px; display: flex; align-items: center; justify-content: space-between;">
+              <div style="display: flex; align-items: center; gap: 14px;">
+                <div style="width: 48px; height: 48px; background: var(--sage-deep); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 1.4rem;">
+                  <i class="fa-solid fa-building-shield"></i>
+                </div>
+                <div>
+                  <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--text-main); text-transform: uppercase;" id="rptHeaderProjectName">
+                    Pembangunan Gedung Perkantoran 3 Lantai
+                  </h2>
+                  <div style="font-size: 0.8rem; color: var(--sage-dark);" id="rptHeaderSub">
+                    KONTRAKTOR: PT Graha Konstruksi Nusantara | KONSULTAN MK: PT Artha Pengawas Rekayasa
+                  </div>
+                </div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 0.7rem; font-weight: 700; color: var(--sage-dark); text-transform: uppercase;">DOKUMEN EVALUASI RESMI</div>
+                <div style="font-size: 0.86rem; font-weight: 800; color: var(--text-main);">LAPORAN KEMAJUAN PEKERJAAN</div>
+                <div style="font-size: 0.76rem; color: var(--sage-dark);" id="rptPrintDate">Tanggal: 06 November 2026</div>
+              </div>
+            </div>
+
+            <!-- Report Content Body Area -->
+            <div id="reportDynamicContent">
+              <!-- Rendered via JS -->
+            </div>
+
+            <!-- Signature Block for Official Signoff -->
+            <div class="print-signatures" style="margin-top: 40px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center;">
+              <div class="sig-box">
+                <div style="font-size: 0.78rem; font-weight: 600; color: var(--sage-dark);">Disusun Oleh:</div>
+                <div style="font-size: 0.82rem; font-weight: 800; color: var(--text-main);">Kontraktor / Mahasiswa</div>
+                <div class="sig-space" style="height: 55px;"></div>
+                <div class="sig-name" style="font-size: 0.86rem; font-weight: 800;" id="rptSigAuthor">Dimas Pratama</div>
+                <div style="font-size: 0.72rem; color: var(--sage-dark);" id="rptSigRole">Project Manager / Estimator</div>
+              </div>
+
+              <div class="sig-box">
+                <div style="font-size: 0.78rem; font-weight: 600; color: var(--sage-dark);">Diperiksa Oleh:</div>
+                <div style="font-size: 0.82rem; font-weight: 800; color: var(--text-main);">Konsultan Pengawas / Dosen MK</div>
+                <div class="sig-space" style="height: 55px;"></div>
+                <div class="sig-name" style="font-size: 0.86rem; font-weight: 800;">Dr. Ir. Bambang Hermanto, MT</div>
+                <div style="font-size: 0.72rem; color: var(--sage-dark);">Team Leader / Dosen Pembimbing</div>
+              </div>
+
+              <div class="sig-box">
+                <div style="font-size: 0.78rem; font-weight: 600; color: var(--sage-dark);">Disetujui Oleh:</div>
+                <div style="font-size: 0.82rem; font-weight: 800; color: var(--text-main);">Owner / Pengguna Jasa</div>
+                <div class="sig-space" style="height: 55px;"></div>
+                <div class="sig-name" style="font-size: 0.86rem; font-weight: 800;">Ir. Suryo Prasetyo, MM</div>
+                <div style="font-size: 0.72rem; color: var(--sage-dark);">Pejabat Pembuat Komitmen</div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ==========================================
+             11. PANDUAN PENGGUNAAN VIEW (STUDENT HUB)
+             ========================================== -->
+        <section class="view-section" id="view-panduan">
+          <div class="page-header">
+            <div class="page-title-group">
+              <h1><i class="fa-solid fa-graduation-cap" style="color: var(--sage-dark)"></i> Pusat Belajar & Panduan Mahasiswa</h1>
+              <p>Pelajari 10 materi kunci manajemen proyek konstruksi, rumus perhitungan, dan muat studi kasus latihan mandiri.</p>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-primary" onclick="openExerciseModal()">
+                <i class="fa-solid fa-dumbbell"></i> Latihan Mandiri Mahasiswa
+              </button>
+            </div>
+          </div>
+
+          <!-- Guide Pills Bar -->
+          <div class="guide-nav-pills" id="guideNavPills">
+            <button class="guide-pill active" onclick="switchGuideTopic('akun')">1. Akun & Login</button>
+            <button class="guide-pill" onclick="switchGuideTopic('proyek')">2. Membuat Proyek</button>
+            <button class="guide-pill" onclick="switchGuideTopic('rab')">3. Mengisi RAB</button>
+            <button class="guide-pill" onclick="switchGuideTopic('jadwal')">4. Jadwal & Gantt</button>
+            <button class="guide-pill" onclick="switchGuideTopic('progres')">5. Input Progres</button>
+            <button class="guide-pill" onclick="switchGuideTopic('kurvas')">6. Membaca Kurva S</button>
+            <button class="guide-pill" onclick="switchGuideTopic('cashflow')">7. Arus Kas</button>
+            <button class="guide-pill" onclick="switchGuideTopic('evm')">8. Analisis EVM</button>
+            <button class="guide-pill" onclick="switchGuideTopic('laporan')">9. Cetak Laporan</button>
+            <button class="guide-pill" onclick="switchGuideTopic('glosarium')">10. Kamus Istilah</button>
+          </div>
+
+          <!-- Dynamic Guide Topic Body -->
+          <div id="guideTopicContent">
+            <!-- Rendered via JS -->
+          </div>
+        </section>
+
+      </main>
+
+    </div>
+
+  </div>
+
+  <!-- ==========================================
+       MODALS INTERAKTIF
+       ========================================== -->
+
+  <!-- Modal 1: Autentikasi (Login & Registrasi Mahasiswa) -->
+  <div class="modal-overlay" id="modalAuth">
+    <div class="modal-container" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="authModalTitle"><i class="fa-solid fa-user-lock"></i> Autentikasi Akun Mahasiswa</h3>
+        <button class="modal-close-btn" onclick="closeModal('modalAuth')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="auth-tabs">
+          <button class="auth-tab-btn active" id="btnTabLogin" onclick="switchAuthTab('login')">Masuk (Login)</button>
+          <button class="auth-tab-btn" id="btnTabRegister" onclick="switchAuthTab('register')">Daftar Akun Baru</button>
+        </div>
+
+        <!-- Form Login -->
+        <form id="formLogin" onsubmit="handleLoginSubmit(event)">
+          <div class="form-group">
+            <label class="form-label">Email Kampus / Mahasiswa <span class="required">*</span></label>
+            <input type="email" class="form-control" id="loginEmail" required placeholder="nama@kampus.ac.id">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Kata Sandi (Password) <span class="required">*</span></label>
+            <input type="password" class="form-control" id="loginPassword" required placeholder="••••••••">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 8px;">
+            <i class="fa-solid fa-right-to-bracket"></i> Masuk ke CONSTRACK
+          </button>
+        </form>
+
+        <!-- Form Registrasi -->
+        <form id="formRegister" style="display: none;" onsubmit="handleRegisterSubmit(event)">
+          <div class="form-group">
+            <label class="form-label">Nama Lengkap Mahasiswa <span class="required">*</span></label>
+            <input type="text" class="form-control" id="regFullName" required placeholder="Contoh: Dimas Pratama">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">NIM Mahasiswa <span class="required">*</span></label>
+              <input type="text" class="form-control" id="regNIM" required placeholder="Contoh: 21/478902/TK/52101">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Universitas / Prodi <span class="required">*</span></label>
+              <input type="text" class="form-control" id="regUniversity" required placeholder="Contoh: Teknik Sipil UGM">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Aktif <span class="required">*</span></label>
+            <input type="email" class="form-control" id="regEmail" required placeholder="nama@kampus.ac.id">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Kata Sandi <span class="required">*</span></label>
+              <input type="password" class="form-control" id="regPassword" required minlength="6" placeholder="Minimal 6 karakter">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Konfirmasi Sandi <span class="required">*</span></label>
+              <input type="password" class="form-control" id="regPasswordConfirm" required minlength="6" placeholder="Ulangi sandi">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 8px;">
+            <i class="fa-solid fa-user-plus"></i> Buat Akun Mahasiswa
+          </button>
+        </form>
+
+        <!-- Demo Accounts Quick Click (Untuk Mempermudah Dosen / Mahasiswa Baru) -->
+        <div style="margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--sage-border);">
+          <div style="font-size: 0.72rem; font-weight: 700; color: var(--sage-dark); text-transform: uppercase;">
+            <i class="fa-solid fa-bolt"></i> Atau Masuk Cepat dengan Akun Latihan:
+          </div>
+          <div class="demo-account-pill" onclick="quickLoginDemo('dimas')">
+            <div>
+              <div style="font-weight: 800; font-size: 0.84rem; color: var(--text-main);">Dimas Pratama (Teknik Sipil UGM)</div>
+              <div style="font-size: 0.72rem; color: var(--sage-dark);">dimas.sipil@kampus.ac.id | Proyek Gedung 3 Lantai</div>
+            </div>
+            <span class="badge badge-success">Pilih <i class="fa-solid fa-arrow-right"></i></span>
+          </div>
+          <div class="demo-account-pill" onclick="quickLoginDemo('anisa')">
+            <div>
+              <div style="font-weight: 800; font-size: 0.84rem; color: var(--text-main);">Anisa Maharani (Teknik Sipil ITB)</div>
+              <div style="font-size: 0.72rem; color: var(--sage-dark);">anisa.maharani@kampus.ac.id | Proyek Gudang Logistik</div>
+            </div>
+            <span class="badge badge-success">Pilih <i class="fa-solid fa-arrow-right"></i></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Profil Mahasiswa (Edit Profil) -->
+  <div class="modal-overlay" id="modalProfile">
+    <div class="modal-container" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-id-card"></i> Pengaturan Profil Mahasiswa</h3>
+        <button class="modal-close-btn" onclick="closeModal('modalProfile')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="formProfile" onsubmit="handleSaveProfile(event)">
+        <div class="modal-body">
+          <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--sage-border-subtle);">
+            <div class="avatar-circle" id="profileModalAvatar" style="width: 52px; height: 52px; font-size: 1.2rem;">DP</div>
+            <div>
+              <div style="font-weight: 800; font-size: 1rem; color: var(--text-main);" id="profileModalName">Dimas Pratama</div>
+              <div style="font-size: 0.78rem; color: var(--sage-dark);" id="profileModalEmail">dimas.sipil@kampus.ac.id</div>
+              <div style="font-size: 0.72rem; color: var(--sage-dark); margin-top: 2px;">Inisial avatar diperbarui otomatis</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Nama Lengkap <span class="required">*</span></label>
+            <input type="text" class="form-control" id="formProfName" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">NIM Mahasiswa <span class="required">*</span></label>
+              <input type="text" class="form-control" id="formProfNIM" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Peran dalam Proyek <span class="required">*</span></label>
+              <select class="form-control" id="formProfRole">
+                <option value="Mahasiswa / Project Manager">Mahasiswa / Project Manager</option>
+                <option value="Mahasiswa / Estimator RAB">Mahasiswa / Estimator RAB</option>
+                <option value="Mahasiswa / Pengawas Lapangan">Mahasiswa / Pengawas Lapangan</option>
+                <option value="Dosen Pembimbing / Evaluator">Dosen Pembimbing / Evaluator</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Universitas / Institut <span class="required">*</span></label>
+            <input type="text" class="form-control" id="formProfUniversity" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalProfile')">Batal</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Simpan Profil</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 3: Kerja Kelompok Proyek (Kolaborasi Tim) -->
+  <div class="modal-overlay" id="modalTeam">
+    <div class="modal-container" style="max-width: 620px;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-users"></i> Kerja Kelompok (Tim Proyek)</h3>
+        <button class="modal-close-btn" onclick="closeModal('modalTeam')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="formula-box" style="margin-bottom: 16px;">
+          <div class="formula-header"><i class="fa-solid fa-users-viewfinder"></i> Kolaborasi Proyek Antarmahasiswa:</div>
+          <p class="formula-desc">Anda dapat mengundang rekan mahasiswa untuk berbagi akses proyek ini. Setiap anggota dapat ditugaskan sebagai Estimator RAB atau Pengawas Lapangan.</p>
+        </div>
+
+        <h4 style="font-size: 0.85rem; font-weight: 800; color: var(--text-main); margin-bottom: 10px;">
+          Daftar Anggota Tim Proyek Saat Ini:
+        </h4>
+        <div id="teamMembersList" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;">
+          <!-- Populated via JS -->
+        </div>
+
+        <h4 style="font-size: 0.85rem; font-weight: 800; color: var(--text-main); margin-bottom: 8px;">
+          Undang Anggota Kelompok Baru:
+        </h4>
+        <form id="formInviteMember" onsubmit="handleInviteMember(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nama Mahasiswa <span class="required">*</span></label>
+              <input type="text" class="form-control" id="inviteName" required placeholder="Contoh: Rian Saputra">
+            </div>
+            <div class="form-group">
+              <label class="form-label">NIM Mahasiswa <span class="required">*</span></label>
+              <input type="text" class="form-control" id="inviteNIM" required placeholder="21/481230/TK/52300">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Email Kampus <span class="required">*</span></label>
+              <input type="email" class="form-control" id="inviteEmail" required placeholder="rian@kampus.ac.id">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Peran dalam Kelompok <span class="required">*</span></label>
+              <select class="form-control" id="inviteRole">
+                <option value="Estimator Biaya">Estimator Biaya (RAB)</option>
+                <option value="Pengawas Lapangan">Pengawas Lapangan (Kurva S & Jadwal)</option>
+                <option value="Anggota Tim">Anggota Tim</option>
+                <option value="Ketua Proyek">Ketua Proyek</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary" style="margin-top: 4px;">
+            <i class="fa-solid fa-user-plus"></i> Tambahkan ke Kelompok
+          </button>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('modalTeam')">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Konfigurasi Supabase Cloud Database -->
+  <div class="modal-overlay" id="modalSupabase">
+    <div class="modal-container" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-cloud-arrow-up"></i> Konfigurasi Database Supabase</h3>
+        <button class="modal-close-btn" onclick="closeModal('modalSupabase')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="formSupabase" onsubmit="handleSaveSupabaseConfig(event)">
+        <div class="modal-body">
+          <div style="background: var(--sage-light); border: 1px solid var(--sage-border); padding: 12px 14px; border-radius: var(--border-radius-md); margin-bottom: 16px; font-size: 0.8rem; color: var(--sage-deep);">
+            <strong><i class="fa-solid fa-circle-info"></i> Dukungan Backend Cloud:</strong>
+            <p style="margin-top: 4px;">CONSTRACK mendukung penyimpanan cloud PostgreSQL Supabase dengan Row Level Security (RLS). Jika belum memiliki proyek Supabase, sistem tetap bekerja penuh dalam mode multi-akun lokal terisolasi.</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Supabase Project URL</label>
+            <input type="url" class="form-control" id="inputSupabaseUrl" placeholder="https://xyzcompany.supabase.co">
+            <small style="font-size: 0.7rem; color: var(--sage-dark);">Ditemukan di Supabase Dashboard -> Project Settings -> API</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Supabase Anon Public API Key</label>
+            <textarea class="form-control" id="inputSupabaseKey" rows="3" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."></textarea>
+            <small style="font-size: 0.7rem; color: var(--sage-dark);">Gunakan <strong>anon public key</strong>, JANGAN pernah memasukkan service_role secret key.</small>
+          </div>
+
+          <div style="margin-top: 12px; font-size: 0.78rem; color: var(--text-main);">
+            <strong>Script SQL Database:</strong> File <code>supabase_schema.sql</code> telah disediakan di folder proyek untuk Anda salin ke SQL Editor Supabase.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalSupabase')">Batal</button>
+          <button type="button" class="btn btn-outline" onclick="handleClearSupabaseConfig()">Hapus Konfigurasi</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Simpan & Hubungkan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 5: Tambah/Edit Proyek (Dengan 6 Jenis Proyek & Auto-Template) -->
+  <div class="modal-overlay" id="modalProyek">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalProyekTitle"><i class="fa-solid fa-folder-plus"></i> Tambah Proyek Konstruksi</h3>
+        <button class="modal-close-btn" onclick="closeModal('modalProyek')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="formProyek" onsubmit="handleSaveProject(event)">
+        <input type="hidden" id="formProyekId">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Jenis Proyek Konstruksi <span class="required">*</span></label>
+              <select class="form-control" id="formProyekJenis" required>
+                  <option value="" disabled selected>-- Pilih Jenis Proyek Konstruksi --</option>
+                <option value="Bangunan Gedung">1. Bangunan Gedung (Perkantoran, Kampus, Ruko)</option>
+                <option value="Proyek Jalan">2. Proyek Jalan (Perkerasan Lentur Aspal)</option>
+                <option value="Proyek Jembatan">3. Proyek Jembatan (Gelagar Beton Pratekan)</option>
+                <option value="Proyek Drainase">4. Proyek Drainase (Saluran U-Ditch Precast)</option>
+                <option value="Proyek Irigasi">5. Proyek Irigasi (Saluran Pasangan Batu & Pintu Air)</option>
+                <option value="Proyek Infrastruktur Lainnya">6. Proyek Infrastruktur Lainnya (Kawasan/Taman)</option>
+              </select>
+            </div>
+            <div class="form-group" style="display: flex; align-items: flex-end;">
+              <button type="button" class="btn btn-outline btn-sm" style="width: 100%; height: 38px;" onclick="openExampleModal('proyek')">
+                  <i class="fa-solid fa-circle-question"></i> Panduan & Contoh Pengisian
+                </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Nama Proyek Konstruksi <span class="required">*</span></label>
+            <input type="text" class="form-control" id="formProyekNama" required placeholder="Contoh: Pembangunan Gedung Kuliah 4 Lantai">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Lokasi Proyek <span class="required">*</span></label>
+              <input type="text" class="form-control" id="formProyekLokasi" required placeholder="Kota / Kabupaten">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Pemilik Proyek (Owner / PPK) <span class="required">*</span></label>
+              <input type="text" class="form-control" id="formProyekOwner" required placeholder="Dinas PUPR / Institusi">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Kontraktor Pelaksana <span class="required">*</span></label>
+              <input type="text" class="form-control" id="formProyekKontraktor" required placeholder="PT / CV Kontraktor">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Konsultan Pengawas (MK) <span class="required">*</span></label>
+              <input type="text" class="form-control" id="formProyekKonsultan" required placeholder="PT / CV Konsultan Pengawas">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nilai Kontrak Fisik (Rp) <span class="required">*</span></label>
+              <input type="number" class="form-control" id="formProyekNilaiKontrak" required min="1000000" step="10000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Pagu Total RAB (Rp) <span class="required">*</span></label>
+              <input type="number" class="form-control" id="formProyekNilaiRAB" required min="1000000" step="10000">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Tanggal Mulai <span class="required">*</span></label>
+              <input type="date" class="form-control" id="formProyekTglMulai" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Target Selesai Rencana <span class="required">*</span></label>
+              <input type="date" class="form-control" id="formProyekTglSelesai" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Deskripsi Lingkup Pekerjaan</label>
+            <textarea class="form-control" id="formProyekDeskripsi" rows="2" placeholder="Catatan spesifikasi teknis dan lingkup konstruksi..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalProyek')">Batal</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Simpan Proyek</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 6: Tambah/Edit Item RAB -->
+  <div class="modal-overlay" id="modalRAB">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalRABTitle"><i class="fa-solid fa-file-circle-plus"></i> Tambah Item Pekerjaan RAB</h3>
+        <button class="modal-close-btn" onclick="closeModal('modalRAB')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="formRAB" onsubmit="handleSaveRABItem(event)">
+        <input type="hidden" id="formRABId">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Divisi Pekerjaan <span class="required">*</span></label>
+              <input type="text" class="form-control" id="formRABDivisi" required placeholder="Contoh: Pekerjaan Struktur">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Kode Pekerjaan <span class="required">*</span></label>
+              <input type="text" class="form-control" id="formRABKode" required placeholder="Contoh: 3.01">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Uraian Pekerjaan <span class="required">*</span></label>
+            <input type="text" class="form-control" id="formRABUraian" required placeholder="Contoh: Kolom beton bertulang K-300...">
+          </div>
+          <div class="form-row-3">
+            <div class="form-group">
+              <label class="form-label">Volume <span class="required">*</span></label>
+              <input type="number" class="form-control" id="formRABVolume" required step="any" min="0.001" oninput="calculateModalRABTotal()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Satuan <span class="required">*</span></label>
+              <select class="form-control" id="formRABSatuan">
+                <option value="m³">m³ (Meter Kubik - Tanah/Beton/Pasir)</option>
+                <option value="m²">m² (Meter Persegi - Dinding/Lantai/Cat)</option>
+                <option value="m'">m' (Meter Lari - Pipa/Kabel/Saluran)</option>
+                <option value="kg">kg (Kilogram - Besi Tulangan)</option>
+                <option value="ton">ton (Ton - Aspal/Baja)</option>
+                <option value="titik">titik (Titik Instalasi Listrik)</option>
+                <option value="unit">unit / buah (Pintu/Kusen/Alat)</option>
+                <option value="ls">ls (Lump Sum - Manajemen K3/Persiapan)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Harga Satuan (Rp) <span class="required">*</span></label>
+              <input type="number" class="form-control" id="formRABHargaSatuan" required step="any" min="0" oninput="calculateModalRABTotal()">
+            </div>
+          </div>
+          <div class="formula-box" style="margin-bottom: 14px;">
+            <div class="formula-header">Kalkulasi Otomatis:</div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: var(--sage-deep);" id="formRABCalculatedTotal">Rp 0</div>
+            <div class="formula-desc">Jumlah Harga = Volume × Harga Satuan</div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Rencana Mulai</label>
+              <input type="date" class="form-control" id="formRABTglMulai">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Rencana Selesai</label>
+              <input type="date" class="form-control" id="formRABTglSelesai">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalRAB')">Batal</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Simpan Item</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 7: Catat Biaya Aktual -->
+  <div class="modal-overlay" id="modalExpense">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-receipt"></i> Catat Biaya Aktual (Kas Keluar)</h3>
+        <button class="modal-close-btn" onclick="closeModal('modalExpense')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="formExpense" onsubmit="handleSaveExpense(event)">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Tanggal Transaksi <span class="required">*</span></label>
+              <input type="date" class="form-control" id="formExpTanggal" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nomor Bukti / BKK <span class="required">*</span></label>
+              <input type="text" class="form-control" id="formExpNoBukti" required placeholder="BKK-11/003">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Kategori Divisi <span class="required">*</span></label>
+              <input type="text" class="form-control" id="formExpKategori" required placeholder="Pekerjaan Struktur / Upah Mandor / Alat">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nominal Pembayaran (Rp) <span class="required">*</span></label>
+              <input type="number" class="form-control" id="formExpNominal" required min="1000" step="1000">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Uraian Pembayaran <span class="required">*</span></label>
+            <input type="text" class="form-control" id="formExpUraian" required placeholder="Contoh: Pengadaan semen Padang 200 zak...">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Penerima / Vendor <span class="required">*</span></label>
+              <input type="text" class="form-control" id="formExpVendor" required placeholder="Nama Toko Bangunan / Mandor">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Metode Pembayaran</label>
+              <select class="form-control" id="formExpMetode">
+                <option value="Transfer Bank Mandiri">Transfer Bank Mandiri</option>
+                <option value="Transfer Bank BCA">Transfer Bank BCA</option>
+                <option value="Transfer Bank BNI">Transfer Bank BNI</option>
+                <option value="Transfer Bank BRI">Transfer Bank BRI</option>
+                <option value="Tunai Kas Proyek">Tunai Kas Proyek</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalExpense')">Batal</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Simpan Transaksi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 8: Update Cepat Progress Pekerjaan -->
+  <div class="modal-overlay" id="modalQuickProgress">
+    <div class="modal-container" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-sliders"></i> Update Progres Lapangan</h3>
+        <button class="modal-close-btn" onclick="closeModal('modalQuickProgress')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="formQuickProgress" onsubmit="handleSaveQuickProgress(event)">
+        <input type="hidden" id="quickProgressItemId">
+        <div class="modal-body">
+          <div style="margin-bottom: 14px;">
+            <div style="font-size: 0.72rem; color: var(--sage-dark); font-weight: 700;">PEKERJAAN:</div>
+            <div style="font-size: 0.95rem; font-weight: 800; color: var(--text-main);" id="quickProgressUraian">-</div>
+            <div style="font-size: 0.78rem; color: var(--sage-dark); margin-top: 2px;" id="quickProgressMeta">-</div>
+          </div>
+
+          <div class="form-group" style="margin-top: 18px;">
+            <label class="form-label">Progres Fisik Aktual Terpasang (%):</label>
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <input type="range" class="form-control" id="quickProgressRange" min="0" max="100" step="1" oninput="syncQuickProgressInput(this.value)" style="flex: 1; accent-color: var(--sage-primary);">
+              <input type="number" class="form-control" id="quickProgressNumber" min="0" max="100" step="0.1" oninput="syncQuickProgressRange(this.value)" style="width: 85px; text-align: center; font-weight: 800; font-size: 1.1rem; color: var(--sage-deep);">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Status Pekerjaan:</label>
+            <select class="form-control" id="quickProgressStatus">
+              <option value="Belum Dimulai">Belum Dimulai</option>
+              <option value="Sedang Berlangsung">Sedang Berlangsung</option>
+              <option value="Selesai">Selesai</option>
+              <option value="Terlambat">Terlambat</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalQuickProgress')">Batal</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Simpan Progres</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 9: Tambah Transaksi Cash Flow -->
+  <div class="modal-overlay" id="modalCashFlow">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-money-bill-transfer"></i> Tambah Transaksi Arus Kas</h3>
+        <button class="modal-close-btn" onclick="closeModal('modalCashFlow')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="formCashFlow" onsubmit="handleSaveCashFlow(event)">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Periode / Bulan <span class="required">*</span></label>
+              <input type="text" class="form-control" id="formCFBulan" required placeholder="Contoh: Bulan 7 (Desember 2026)">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Pemasukan Termin (Rp)</label>
+              <input type="number" class="form-control" id="formCFPemasukan" min="0" step="1000" value="0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Uraian Pemasukan Termin</label>
+            <input type="text" class="form-control" id="formCFUraianMasuk" placeholder="Termin III / Klaim Tambah Kurang">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Pengeluaran Kas (Rp)</label>
+              <input type="number" class="form-control" id="formCFPengeluaran" min="0" step="1000" value="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Rincian Pengeluaran</label>
+              <input type="text" class="form-control" id="formCFRincianKeluar" placeholder="Finishing, cat, PHO">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Keterangan Tambahan</label>
+            <input type="text" class="form-control" id="formCFKeterangan" placeholder="Catatan BAST Termin...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('modalCashFlow')">Batal</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Simpan Transaksi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 10: Latihan Mandiri Mahasiswa (Studi Kasus 1-Click) -->
+  <div class="modal-overlay" id="modalExercises">
+    <div class="modal-container" style="max-width: 620px;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-dumbbell"></i> Latihan Kasus Manajemen Konstruksi</h3>
+        <button class="modal-close-btn" onclick="closeModal('modalExercises')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.82rem; color: var(--sage-dark); margin-bottom: 14px;">
+          Pilih salah satu skenario studi kasus latihan di bawah ini untuk mempelajari analisa Kurva S dan EVM secara praktis:
+        </p>
+        <div id="exerciseCardsContainer" style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Populated via JS -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('modalExercises')">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <!-- Modal Contoh Pengisian Edukatif Mahasiswa (Terpisah dari Form) -->
+  <div class="modal-overlay" id="modalContohPengisian">
+    <div class="modal-container" style="max-width: 780px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="contohModalTitle"><i class="fa-solid fa-circle-question"></i> Panduan & Contoh Pengisian</h3>
+        <button class="modal-close-btn" onclick="closeModal('modalContohPengisian')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div style="background: var(--sage-light); border: 1px solid var(--sage-border); padding: 10px 14px; border-radius: var(--border-radius-md); margin-bottom: 14px; font-size: 0.8rem; color: var(--sage-deep);">
+          <i class="fa-solid fa-graduation-cap"></i> <strong>Catatan Edukatif Mahasiswa:</strong> Formulir proyek pengguna selalu dimulai dari <strong>keadaan KOSONG</strong>. Contoh di bawah ini disediakan khusus sebagai bahan referensi belajar dan <strong>tidak akan mengubah atau mencampuri data proyek aktif Anda</strong>.
+        </div>
+
+        <!-- Example Navigation Tabs -->
+        <div class="example-nav-tabs">
+          <button class="example-nav-btn active" id="btnExTab-proyek" onclick="switchExampleTab('proyek')"><i class="fa-solid fa-folder-open"></i> 1. Identitas Proyek</button>
+          <button class="example-nav-btn" id="btnExTab-rab" onclick="switchExampleTab('rab')"><i class="fa-solid fa-calculator"></i> 2. RAB & AHSP</button>
+          <button class="example-nav-btn" id="btnExTab-jadwal" onclick="switchExampleTab('jadwal')"><i class="fa-solid fa-calendar-days"></i> 3. Jadwal & Durasi</button>
+          <button class="example-nav-btn" id="btnExTab-progres" onclick="switchExampleTab('progres')"><i class="fa-solid fa-list-check"></i> 4. Input Progres</button>
+          <button class="example-nav-btn" id="btnExTab-kurvas" onclick="switchExampleTab('kurvas')"><i class="fa-solid fa-chart-line"></i> 5. Kurva S</button>
+          <button class="example-nav-btn" id="btnExTab-cashflow" onclick="switchExampleTab('cashflow')"><i class="fa-solid fa-money-bill-trend-up"></i> 6. Arus Kas</button>
+          <button class="example-nav-btn" id="btnExTab-evm" onclick="switchExampleTab('evm')"><i class="fa-solid fa-chart-pie"></i> 7. Analisis EVM</button>
+        </div>
+
+        <!-- Tab Content Container -->
+        <div id="exampleTabContent">
+          <!-- Populated via JS renderExampleContent() -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('modalContohPengisian')">Tutup Panduan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Application Logic Scripts -->
+  <script src="js/supabase.js?v=2.2.0"></script>
+  <script src="js/data.js?v=2.2.0"></script>
+  <script src="js/app.js?v=2.2.0"></script>
+</body>
+</html>
